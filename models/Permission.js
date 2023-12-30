@@ -8,10 +8,12 @@ const PermissionSchema = new mongoose.Schema({
     returningDate: Date,
     returningTime: String,
     reason: String,
+    parentsContact: String,
+    issuer: String,
 })
 
-PermissionSchema.statics.query = async function(){
-    const perm = await this.find({}) 
+PermissionSchema.statics.query = async function(name, stream){
+    const perm = await this.find({name, stream}) 
     console.log(perm);
    return perm;
   

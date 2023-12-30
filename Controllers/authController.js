@@ -71,7 +71,7 @@ module.exports.login = async (req, res, next) => {
 
 module.exports.view = async (req, res, next) => {
   try {
-    const { name, stream } = req.body;
+    const { name, stream, year } = req.body;
 
 
     const query = {};
@@ -79,9 +79,11 @@ module.exports.view = async (req, res, next) => {
       query.name = { $regex: name, $options: "i" };
     }
     if (stream) {
-      query.stream = stream;
+      query.stream = { $regex: stream, $options: "i" };
     }
-
+    if(year) {
+      query.year = { $regex: year, $options: "i" };
+    }
     const faults = await FaultModel.find(query);
 
     console.log("Name:", name, "Stream:", stream);
@@ -97,30 +99,6 @@ module.exports.view = async (req, res, next) => {
     res.status(500).json({ error: "An error occurred while fetching data from MongoDB." });
   }
 }
-module.exports.perm = async (req, res, next) => {
-  try {
-    const { name, stream } = req.body;
-    console.log("Received parameters:", { name, stream });
 
-const query = {};
-if(name) {
-  query.name = { $regex: name, $options: "i" };
-}
-if (stream) {
-  query.stream = stream;
-}
-const perms = await PermissionModel.find(query);
-console.log("Name:", name, "Stream:", stream)
-if(perms.length > 0 ){
-  res.json(perms);
-}else{
-  res.json({ message: "No permissions found with the given criteria." });
-}
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "An error occurred while fetching data from MongoDB." });
-  }
-
-}
 
 

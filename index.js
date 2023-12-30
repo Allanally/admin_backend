@@ -6,6 +6,9 @@ const PermissionModel = require('./models/Permission')
 const FaultModel = require('./models/Fault')
 const UserModel = require('./models/User')
 const RequestModel = require('./models/Requests')
+const cookieParser = require('cookie-parser');
+const authRoutes = require("./Routes/AuthRoutes");
+const FaultingModel = require("./models/Faulting")
 const multer = require('multer');
 const xlsx = require('xlsx'); // Add this line
 require('dotenv').config();
@@ -21,6 +24,8 @@ app.use(cors({
   methods: ["GET", "POST"],
   credentials: true,
 }));
+app.use(cookieParser())
+app.use(authRoutes);
 
 const dbURI = process.env.MONGODB_URI;
 mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -42,15 +47,12 @@ mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
       const sheet = workbook.Sheets[sheetName];
       const jsonData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
   
-      // Assuming each row in data is an array of values [name, secondName, gender, ...]
       const studentsData = jsonData.map((row) => ({
-        firstName: row[0],     // Assuming the first column is firstName
-        secondName: row[1],    // Assuming the second column is secondName
-        gender: row[2],        // Assuming the third column is gender
-        // Add more properties based on your data structure
+        firstName: row[0],  
+        secondName: row[1],   
+        gender: row[2],       
       }));
   
-      // Save each student to the MongoDB model
       const savedData = await StudentModel.insertMany(studentsData);
   
       console.log('Data saved and inserted successfully:', savedData);
@@ -75,12 +77,55 @@ app.post('/fault', (req, res) => {
 app.post("/", (req,res) => {
   
 })
+app.post('/permsfilter', async (req, res) => {
+  try {
+    const { name, stream, year } = req.body;
+    const query = {}
+    if (name) {
+      query.name = { $regex: name, $options: "i" };
+    }
+    if (stream) {
+      query.stream = { $regex: stream, $options: "i" };
+    }
+    const perms = await PermissionModel.find(query);
+
+    console.log("Name:", name, "Stream:", stream, "Year:", year);
+    
+    if (perms.length > 0) {
+      res.json(perms);
+    } else {
+      res.json({ message: "No faults found with the given criteria." });
+    }
+    
+  } catch (error) {
+    console.log(error); 
+    res.status(500).json({ error: "An error occurred while fetching data from MongoDB." });
+  }
+})
+
 
 app.get('/fault', (req, res) => {
   FaultModel.find({})
   .then(faults => res.json(faults))
   .catch(err => {
     console.error('Error fetching faults:', err);
+    res.status(500).json("Server error");
+  });
+})
+app.post('/faulting', (req, res) => {
+FaultingModel.create(req.body)
+.then(faulting => {res.json(faulting)
+  console.log(faulting)})
+  .catch(err => {
+    console.error('Error saving Faulting:', err);
+    res.status(500).json("Server error");
+  });
+})
+app.get('/faulting', (req, res) => {
+  FaultingModel.find({})
+  .then(faulting => res.json(faulting))
+  .catch(err => {
+    console.error('Error fetching Faultings:', err);
     res.status(500).json("Server error");
   });
 })
