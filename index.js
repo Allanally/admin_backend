@@ -9,19 +9,20 @@ const RequestModel = require('./models/Requests')
 const cookieParser = require('cookie-parser');
 const authRoutes = require("./Routes/AuthRoutes");
 const FaultingModel = require("./models/Faulting")
+const ArchiveModel = require('./models/Archive')
 const multer = require('multer');
-const xlsx = require('xlsx'); // Add this line
+const xlsx = require('xlsx');
 require('dotenv').config();
 
 const StudentModel = require('./models/Student');
 
-const storage = multer.memoryStorage(); // Store the file in memory
+const storage = multer.memoryStorage(); 
 const upload = multer({ storage: storage });
 
 app.use(express.json());
 app.use(cors({
   origin: ["http://localhost:5173"],
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
 app.use(cookieParser())
@@ -48,9 +49,9 @@ mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
       const jsonData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
   
       const studentsData = jsonData.map((row) => ({
-        firstName: row[0],  
-        secondName: row[1],   
-        gender: row[2],       
+        name: `${row[1]} ${row[2]}`,
+        gender: row[3],
+        stream: row[4],    
       }));
   
       const savedData = await StudentModel.insertMany(studentsData);
@@ -66,6 +67,27 @@ mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
+  app.post('/addstudent', (req, res) => {
+    StudentModel.create(req.body)
+    .then(student => res.json(student))
+    .catch(err => {
+     console.error('Error saving student:', err);
+      res.status(500).json("Server error");
+})
+})
+app.post('/students', async (req, res) => {
+  try {
+    const streamPattern = new RegExp(req.body.stream, 'i');
+    const students = await StudentModel.find({ stream: streamPattern });
+
+    res.json(students);
+    console.log(students);
+  } catch (err) {
+    console.error('Error fetching students:', err);
+    res.status(500).json("Server error");
+  }
+});
+
 app.post('/fault', (req, res) => {
   FaultModel.create(req.body)
     .then(fault => res.json(fault))
@@ -103,6 +125,33 @@ app.post('/permsfilter', async (req, res) => {
   }
 })
 
+app.post('/archive', (req, res) => {
+ArchiveModel.create(req.body)
+.then(archive => {res.json(archive)
+console.log("Successfully Saved")})
+.catch(err => {
+  console.error('Error Saving archive:', err);
+  res.status(500).json("Server error");
+})
+})
+app.delete('/archive/:id', (req, res) => {
+  const studentId = req.params.id;
+
+  StudentModel.findByIdAndDelete(studentId)
+    .then(student => {
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+
+      res.json({ message: 'Student deleted successfully', deletedStudent: student });
+      console.log('Successfully deleted');
+    })
+    .catch(err => {
+      console.error('Error deleting student', err);
+      res.status(500).json({ error: 'Server error' });
+    });
+});
+
 
 app.get('/fault', (req, res) => {
   FaultModel.find({})
@@ -129,6 +178,33 @@ app.get('/faulting', (req, res) => {
     res.status(500).json("Server error");
   });
 })
+app.put('/faulting', async (req, res) => {
+  try {
+    const updatedValues = { $set: req.body }; 
+
+    const result = await FaultingModel.updateOne({}, updatedValues);
+
+    if (result.nModified > 0) {
+      res.status(200).json({ message: 'Fault updated successfully' });
+    } else {
+      res.status(404).json({ message: 'Fault not found or no modifications' });
+    }
+  } catch (error) {
+    console.error('Error updating fault:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.delete('/faulting', (req, res) => {
+  FaultingModel.findOneAndDelete(req.body)
+  .then(faulting => {res.json(faulting)
+    console.log("Successfully deleted")})
+  .catch(err => {
+    console.error('Error fetching Faultings:', err);
+    res.status(500).json("Server error");
+  });
+})
+
 app.get('/user', (req, res) => {
   UserModel.find({})
   .then(users => res.json(users))

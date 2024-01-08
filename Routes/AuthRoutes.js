@@ -5,5 +5,6 @@ const { checkUser } = require("../Middlewares/AuthMiddlewares");
 router.post("/register", authController.register);
 router.post("/login", authController.login);
 router.post("/view", authController.view);
+router.post("/update", authController.faultupdate);
 
 module.exports = router;

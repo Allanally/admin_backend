@@ -2,6 +2,7 @@ const UserModel = require("../models/User");
 const FaultModel = require("../models/Fault");
 const jwt = require("jsonwebtoken");
 const PermissionModel = require("../models/Permission");
+const FaultingModel = require("../models/Faulting")
 
 require('dotenv').config();
 
@@ -100,5 +101,21 @@ module.exports.view = async (req, res, next) => {
   }
 }
 
+module.exports.faultupdate = async (req, res, next) => {
+  try {
+    const updatedValues = { $set: req.body }; 
 
+    const result = await FaultingModel.updateOne({}, updatedValues);
+
+    if (result.nModified > 0) {
+      res.status(200).json({ message: 'Fault updated successfully' });
+      console.log("success")
+    } else {
+      res.status(404).json({ message: 'Fault not found or no modifications' });
+    }
+  } catch (error) {
+    console.error('Error updating fault:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
 

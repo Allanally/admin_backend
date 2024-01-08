@@ -1,15 +1,16 @@
 const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
-  firstName: {
+  name: {
     type: String,
     required: true,
   },
-  secondName: {
+  gender: {
     type: String,
-    required: true,
   },
-  gender: String
+  stream: {
+    type: String,
+  },
 });
 
 const StudentModel = mongoose.model('student', studentSchema);
