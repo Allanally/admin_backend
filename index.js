@@ -10,6 +10,8 @@ const cookieParser = require('cookie-parser');
 const authRoutes = require("./Routes/AuthRoutes");
 const FaultingModel = require("./models/Faulting")
 const ArchiveModel = require('./models/Archive')
+const SemesterModel = require('./models/Semesters')
+const EndedSemesterModel = require('./models/EndedSemesters');
 const multer = require('multer');
 const xlsx = require('xlsx');
 require('dotenv').config();
@@ -67,6 +69,46 @@ mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
+
+  app.post('/semester', (req, res) => {
+    SemesterModel.create(req.body)
+    .then(semester => res.json(semester))
+    .catch(err => {
+      console.error('Error saving semester:', err);
+      res.status(500).json("Server error"); 
+    })
+  })
+  app.get('/semester', async (req, res) => {
+    try {
+      const latestSemester = await SemesterModel.findOne({}, {}, { sort: { timestampField: -1 } });
+  
+      if (latestSemester) {
+        res.json(latestSemester);
+        console.log(latestSemester);
+      } else {
+        res.json({ message: 'No semesters found.' });
+      }
+    } catch (error) {
+      console.error('Error retrieving latest semester:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+  app.delete('/semester', (req, res) => {
+    SemesterModel.findOneAndDelete(req.body)
+    .then((result) => {
+      res.json(result)
+      console.log(result)
+    })
+    .catch((error) => {
+      console.log(error)
+    })
+  })
+  app.post('/endedsemester', (req, res) => {
+   EndedSemesterModel.create(req.body)
+   .then((result) => {res.json(result)
+   console.log(result)})
+   .catch((error) => console.log(error))
+  })
   app.post('/addstudent', (req, res) => {
     StudentModel.create(req.body)
     .then(student => res.json(student))
